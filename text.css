@@ -1,0 +1,53 @@
+/* Applies to every <p> tag on the page.
+   NOTE: font names with a SPACE in them (like Yuyu Short) need quotes
+   around them. Without quotes, the browser can get confused about where
+   the font name ends — it happened to still work here, but quoting is
+   the safe habit. "sans-serif" is a fallback in case the Google Font
+   fails to load. */
+p {
+  font-family: 'Nunito', sans-serif;
+  color: var(--color-text);
+}
+
+/* The main heading/name text uses the fun display font, but just for
+   this one element — that's why it's its own class, not on the base "p". */
+.title {
+  font-family: 'Yuyu Short', cursive;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--color-primary);
+  /* NOTE: your old version had line-height (24px) SMALLER than the
+     font-size (40px). Line-height is the space a line of text takes up
+     top-to-bottom — if it's smaller than the text itself, lines start
+     overlapping each other. Rule of thumb: keep line-height at least
+     equal to font-size, usually a bit bigger. Using a unitless number
+     like 1.2 means "1.2x the font-size", so it scales automatically
+     even if you change font-size later. */
+  line-height: 1.2;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* The paragraph of body text */
+.body {
+  font-size: 1.1rem;         /* was a huge 30px — 1.1rem (~17.6px) is easier to read in paragraph form */
+  line-height: 1.6;          /* generous line-height = easier reading, especially for longer text */
+  text-align: center;
+}
+
+#countDisplay {
+  font-family: 'Yuyu Short', cursive;
+  font-size: 1.6rem;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+/* note: removed a stray extra "}" that was at the very end of the old file —
+   an unmatched closing brace can confuse the browser about where
+   styles start and stop. */

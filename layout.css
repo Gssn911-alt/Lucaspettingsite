@@ -1,0 +1,132 @@
+/*
+  ============================================================
+  :root VARIABLES — new concept!
+  ============================================================
+  ":root" means "the whole document". Anything you declare here with
+  "--name: value" is a CUSTOM PROPERTY (a CSS variable). You can then
+  reuse it anywhere with var(--name), in ANY of your .css files.
+
+  Why bother? Before, your files had colors like rgb(144, 4, 4) typed
+  out separately in buttons.css. If you wanted to change your color
+  scheme, you'd have to hunt through every file and change every
+  number by hand. Now you change the value ONCE, right here, and
+  every button/text/box that uses it updates automatically.
+
+  Try it: change --color-primary below to any other color and reload
+  the page — watch how much updates from one line.
+*/
+:root {
+  --color-bg: #fff8f0;        /* warm cream page background */
+  --color-text: #3d2b1f;      /* dark warm brown, easier on the eyes than pure black */
+  --color-primary: #d97742;   /* ginger-cat orange — Home button */
+  --color-secondary: #3a86ff; /* blue — Join button */
+  --color-success: #588157;   /* green — Price button */
+  --color-love: #e63946;      /* red — Pet button, the "heart" color */
+
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+}
+
+/*
+  New concepts in this file: styling <div> containers, and using "flexbox"
+  (display: flex) to line things up without manually positioning each item.
+*/
+
+* {
+  /* box-sizing: border-box means padding/border are counted INSIDE the
+     width/height you set, instead of adding extra size on top of it.
+     This stops boxes from silently growing bigger than you expect. */
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+}
+
+.container {
+  max-width: 700px;     /* stops the page from stretching super wide on big screens */
+  margin: 0 auto;       /* the "0 auto" trick centers a block horizontally */
+  padding: 20px;
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 10px;
+}
+
+/* NOTE: your original file had "display: flex" and a few other properties
+   declared TWICE in a row inside .nav. The second block silently
+   overwrote the first one, so the first block was dead code doing
+   nothing. I merged them into one clean block below. */
+.nav {
+  display: flex;             /* turns this div into a flex container */
+  justify-content: center;   /* centers items horizontally as a group */
+  align-items: center;       /* lines items up on the same vertical line */
+  gap: 20px;                 /* even spacing between items, no margin math needed */
+  flex-wrap: wrap;           /* lets buttons drop to a new line on small screens instead of squishing */
+  margin-bottom: 30px;
+}
+
+.content {
+  margin-bottom: 20px;
+}
+
+.photo-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.lucas-photo {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;         /* fills the square without stretching the photo out of shape */
+  border-radius: var(--radius-sm);
+  border: 3px solid var(--color-primary);
+}
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.counter {
+  /* NOTE: the old version had a FIXED height/width of 200px on this box.
+     Fixed sizes are risky for anything holding text, because if the
+     text is ever longer than expected (like "Pets: 1000000"), it gets
+     clipped or overflows instead of the box just growing to fit.
+     min-width lets it grow if it needs to, but never shrink below 200px. */
+  min-width: 200px;
+  background-color: white;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.facts {
+  background-color: rgb(245, 245, 245);
+  border-radius: var(--radius-sm);
+  padding: 15px 20px;
+  margin-top: 20px;
+  text-align: left;          /* overrides the centered text just for this box */
+  display: inline-block;     /* lets the box hug its content instead of going full width */
+}
+
+.footer {
+  margin-top: 30px;
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--color-secondary);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}

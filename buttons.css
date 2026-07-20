@@ -1,0 +1,91 @@
+/*
+  All 4 buttons now pull their colors from the variables in layout.css
+  (var(--color-primary), etc.) instead of hardcoded rgb() values.
+  The shapes/sizes are still each button's own personality, same as before.
+*/
+
+.HomeButton {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  height: 45px;
+  width: 100px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: bold;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.HomeButton:hover {
+  opacity: 0.85;
+  transform: translateY(-2px); /* small lift on hover feels more "clickable" */
+}
+.HomeButton:active {
+  opacity: 0.6;
+  transform: translateY(0);
+}
+
+.JoinButton {
+  background-color: white;
+  color: var(--color-secondary);
+  border: 2px solid var(--color-secondary);
+  height: 45px;
+  width: 100px;
+  border-radius: 999px; /* 999px is a trick for "fully round pill shape", no need to calculate the exact number */
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s, color 0.2s;
+}
+.JoinButton:hover {
+  background-color: var(--color-secondary);
+  color: white;
+}
+.JoinButton:active {
+  opacity: 0.6;
+}
+
+.PriceButton {
+  background-color: var(--color-success);
+  color: white;
+  border: none;
+  height: 160px;
+  width: 160px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 15px;
+  transition: box-shadow 0.3s, opacity 0.2s;
+}
+.PriceButton:hover {
+  opacity: 0.85;
+  box-shadow: 0 4px 10px rgba(88, 129, 87, 0.4);
+}
+.PriceButton:active {
+  opacity: 0.6;
+}
+
+.petbutton {
+  /* This is the "star" button, so it gets the boldest color and the
+     biggest size — visual hierarchy: the most important action on the
+     page should look the most important. */
+  background-color: var(--color-love);
+  color: white;
+  border: none;
+  height: 160px;
+  width: 160px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: 1.3rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.petbutton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(230, 57, 70, 0.4);
+}
+.petbutton:active {
+  transform: scale(0.97);
+  opacity: 0.8;
+}
