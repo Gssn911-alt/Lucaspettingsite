@@ -50,9 +50,9 @@ petButton.addEventListener("click", async function () {
   if (newCount === null) return;
 
   const templateParams = {
-   message: "Lucas was just petted! Total pets: " + newCount,
+    message: "Lucas was just petted! Total pets: " + newCount,
   };
- 
+
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams).then(
     function (response) {
       console.log("Email sent!", response.status);
@@ -62,9 +62,7 @@ petButton.addEventListener("click", async function () {
     }
   );
 });
- 
+
 priceButton.addEventListener("click", async function () {
   await incrementCount("prizes", prizeCountDisplay, "Prizes");
 });
- 
-
