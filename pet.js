@@ -6,6 +6,7 @@
 const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
 const EMAILJS_SERVICE_ID = "service_2rcy7it";
 const EMAILJS_TEMPLATE_ID = "template_0v6kx08";
+const EMAILJS_PRIZE_TEMPLATE_ID = "template_vte0m0t";
 
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
@@ -63,11 +64,21 @@ petButton.addEventListener("click", async function () {
   );
 });
 
-// ------------------------------------------------------------------
-// PRIZE BUTTON — just increments the prizes counter for now (test mode).
-// This is the hook you'll extend later for the dispenser + captcha logic.
-// ------------------------------------------------------------------
-
 priceButton.addEventListener("click", async function () {
-  await incrementCount("prizes", prizeCountDisplay, "Prizes");
+  const newPrizeCount = await incrementCount("prizes", prizeCountDisplay, "Prizes");
+
+  if (newPrizeCount === null) return;
+
+  const prizeTemplateParams = {
+    message: "A prize was just requested! Total prizes: " + newPrizeCount,
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PRIZE_TEMPLATE_ID, prizeTemplateParams).then(
+    function (response) {
+      console.log("Prize email sent!", response.status);
+    },
+    function (error) {
+      console.log("Prize email failed to send:", error);
+    }
+  );
 });
