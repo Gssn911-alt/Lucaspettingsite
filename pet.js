@@ -93,36 +93,3 @@ priceButton.addEventListener("click", async function () {
   await incrementCount("prizes", prizeCountDisplay, "Prizes");
 });
 
-// ------------------------------------------------------------------
-// PRIZE COUNTER — talks to your own Cloudflare Worker backend instead
-// of CounterAPI, because later this Worker will also trigger the
-// dispenser hardware. Same fetch()/async pattern as the pets counter above.
-// ------------------------------------------------------------------
-
-const PRIZE_API = "prize-counter.gersonv5005.workers.dev";
-
-const priceButton = document.getElementById("priceButton");
-const prizeCountDisplay = document.getElementById("prizeCountDisplay");
-
-async function loadPrizeCount() {
-  try {
-    const response = await fetch(PRIZE_API);
-    const data = await response.json();
-    prizeCountDisplay.textContent = "Prizes: " + data.count;
-  } catch (error) {
-    console.log("Couldn't load prize count:", error);
-    prizeCountDisplay.textContent = "Prizes: —";
-  }
-}
-
-loadPrizeCount();
-
-priceButton.addEventListener("click", async function () {
-  try {
-    const response = await fetch(PRIZE_API, { method: "POST" });
-    const data = await response.json();
-    prizeCountDisplay.textContent = "Prizes: " + data.count;
-  } catch (error) {
-    console.log("Couldn't update prize count:", error);
-  }
-});
