@@ -1,79 +1,77 @@
 // ============================================
-// Global click counter (via CounterAPI) + email notification (via EmailJS)
-// HTML = structure, CSS = looks, JS = behavior (what happens when you click).
+// Click counters (via your own Cloudflare Worker) + email notification (via EmailJS)
+// Both the "pets" counter and "prizes" counter now go through ONE Worker backend,
+// instead of pets using CounterAPI and prizes using something else.
 // ============================================
 
-const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";   
-const EMAILJS_SERVICE_ID = "service_2rcy7it";     
-const EMAILJS_TEMPLATE_ID = "template_0v6kx08";    
+const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
+const EMAILJS_SERVICE_ID = "service_2rcy7it";
+const EMAILJS_TEMPLATE_ID = "template_0v6kx08";
 
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
 // ------------------------------------------------------------------
-// COUNTERAPI SETUP — this is what makes the count SHARED between every
-// visitor, instead of resetting per-browser. CounterAPI stores the number
-// on its own server; we just ask it to read or increase that number.
-//
-// NAMESPACE is like a folder name for your counter, so it doesn't clash
-// with someone else's. Pick something unique to you — I'd suggest
-// something like your GitHub username + "-lucas-cat".
-// NAME is the specific counter inside that namespace.
+// WORKER SETUP — replace <your-subdomain> with your real Worker URL.
+// The Worker understands two paths: /pets and /prizes (and /pets/up,
+// /prizes/up to increment). One backend, two counters.
 // ------------------------------------------------------------------
 
-const COUNTER_NAMESPACE = "lucas-vasquez-cat-website"; // <- change this to something only you would pick
-const COUNTER_NAME = "pets";
-const COUNTER_BASE_URL = `https://api.counterapi.dev/v1/${COUNTER_NAMESPACE}/${COUNTER_NAME}`;
- 
-// STEP 2: grab the two elements we need, using the "id" we gave them in HTML.
+const WORKER_BASE_URL = "https://prize-counter.<your-subdomain>.workers.dev";
+
+// STEP 2: grab the elements we need from the HTML.
 const countDisplay = document.getElementById("countDisplay");
 const petButton = document.getElementById("petButton");
+const prizeCountDisplay = document.getElementById("prizeCountDisplay");
+const priceButton = document.getElementById("priceButton");
 
 // ------------------------------------------------------------------
-// NEW CONCEPT: fetch() + async/await
-//
-// fetch(url) asks another server for something over the internet — here,
-// the current count. It doesn't arrive instantly, so fetch() hands back a
-// "promise" (a placeholder for a value that's still on its way).
-//
-// "async function" + "await" is a way to write code that WAITS for that
-// promise to finish before moving to the next line, so it reads top-to-bottom
-// like normal code instead of nesting callbacks inside callbacks.
+// SHARED HELPERS — one function to read a counter, one to increment it.
+// Both pets and prizes call these same two functions instead of each
+// having their own copy-pasted fetch() logic.
 // ------------------------------------------------------------------
 
-// Runs once when the page first loads: get the current count and show it,
-// WITHOUT increasing it (that's why we call the plain URL, not "/up").
-async function loadCurrentCount() {
+async function loadCount(counterName, displayElement, label) {
   try {
-    const response = await fetch(COUNTER_BASE_URL);
-    const data = await response.json(); // turns the server's reply into a JS object
-    countDisplay.textContent = "Pets: " + data.count;
+    const response = await fetch(`${WORKER_BASE_URL}/${counterName}`);
+    const data = await response.json();
+    displayElement.textContent = `${label}: ${data.count}`;
   } catch (error) {
-    console.log("Couldn't load the count:", error);
-    countDisplay.textContent = "Pets: —";
+    console.log(`Couldn't load ${counterName} count:`, error);
+    displayElement.textContent = `${label}: —`;
   }
 }
 
-loadCurrentCount();
-
-// Runs every time the button is clicked: tell CounterAPI to add 1,
-// then show whatever total it sends back.
-petButton.addEventListener("click", async function () {
-
-  let newCount;
-
+// Returns the new count so the caller (e.g. the pet button) can use it,
+// like building the EmailJS message. Returns null if the request failed.
+async function incrementCount(counterName, displayElement, label) {
   try {
-    const response = await fetch(COUNTER_BASE_URL + "/up");
+    const response = await fetch(`${WORKER_BASE_URL}/${counterName}/up`, {
+      method: "POST",
+    });
     const data = await response.json();
-    newCount = data.count;
-    countDisplay.textContent = "Pets: " + newCount;
+    displayElement.textContent = `${label}: ${data.count}`;
+    return data.count;
   } catch (error) {
-    console.log("Couldn't update the count:", error);
-    return; // stop here if the count itself failed — no point sending an email with no number
+    console.log(`Couldn't update ${counterName} count:`, error);
+    return null;
   }
+}
 
-  
+// Load both counts once when the page opens, without incrementing them.
+loadCount("pets", countDisplay, "Pets");
+loadCount("prizes", prizeCountDisplay, "Prizes");
+
+// ------------------------------------------------------------------
+// PET BUTTON — increments the pets counter, then emails you the total.
+// ------------------------------------------------------------------
+
+petButton.addEventListener("click", async function () {
+  const newCount = await incrementCount("pets", countDisplay, "Pets");
+
+  if (newCount === null) return; // stop here if the count itself failed
+
   const templateParams = {
-    message: "Lucas was just petted! Total pets: " + petCount
+    message: "Lucas was just petted! Total pets: " + newCount,
   };
 
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams).then(
@@ -84,6 +82,13 @@ petButton.addEventListener("click", async function () {
       console.log("Email failed to send:", error);
     }
   );
-
 });
 
+// ------------------------------------------------------------------
+// PRIZE BUTTON — just increments the prizes counter for now (test mode).
+// This is the hook you'll extend later for the dispenser + captcha logic.
+// ------------------------------------------------------------------
+
+priceButton.addEventListener("click", async function () {
+  await incrementCount("prizes", prizeCountDisplay, "Prizes");
+});
