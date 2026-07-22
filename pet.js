@@ -1,4 +1,4 @@
-// ============================================
+ // ============================================
 // Click counters (via your own Cloudflare Worker) + email notification (via EmailJS)
 // Both the "pets" counter and "prizes" counter now go through ONE Worker backend,
 // instead of pets using CounterAPI and prizes using something else.
@@ -99,7 +99,7 @@ priceButton.addEventListener("click", async function () {
 // dispenser hardware. Same fetch()/async pattern as the pets counter above.
 // ------------------------------------------------------------------
 
-const PRIZE_API = "https://prize-counter.<your-subdomain>.workers.dev";
+const PRIZE_API = "prize-counter.gersonv5005.workers.dev";
 
 const priceButton = document.getElementById("priceButton");
 const prizeCountDisplay = document.getElementById("prizeCountDisplay");
