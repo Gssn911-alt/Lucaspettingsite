@@ -16,7 +16,7 @@ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 // /prizes/up to increment). One backend, two counters.
 // ------------------------------------------------------------------
 
-const WORKER_BASE_URL = "prize-counter.gersonv5005.workers.dev";
+const WORKER_BASE_URL = "https://prize-counter.gersonv5005.workers.dev";
 
 // STEP 2: grab the elements we need from the HTML.
 const countDisplay = document.getElementById("countDisplay");
