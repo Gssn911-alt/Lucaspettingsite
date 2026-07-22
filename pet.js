@@ -63,6 +63,11 @@ petButton.addEventListener("click", async function () {
   );
 });
 
+// ------------------------------------------------------------------
+// PRIZE BUTTON — just increments the prizes counter for now (test mode).
+// This is the hook you'll extend later for the dispenser + captcha logic.
+// ------------------------------------------------------------------
+
 priceButton.addEventListener("click", async function () {
   await incrementCount("prizes", prizeCountDisplay, "Prizes");
 });
