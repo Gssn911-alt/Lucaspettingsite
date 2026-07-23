@@ -12,7 +12,7 @@ p {
 /* The main heading/name text uses the fun display font, but just for
    this one element — that's why it's its own class, not on the base "p". */
 .title {
-  font-family: 'Yuyu Short', cursive;
+  font-family: 'Nunito', bolt;
   font-size: 2.5rem;
   font-weight: bold;
   color: var(--color-primary);
