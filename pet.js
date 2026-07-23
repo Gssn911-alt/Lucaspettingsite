@@ -42,7 +42,7 @@ async function incrementCount(counterName, displayElement, label) {
   }
 }
 
-loadCount("pets", countDisplay, "Pets");
+loadCount("pets", countDisplay,\n#prizeCountDisplay, "Pets");
 loadCount("prizes", prizeCountDisplay, "Prizes");
 
 petButton.addEventListener("click", async function () {
