@@ -17,7 +17,7 @@
 */
 :root {
   --color-bg: #fff8f0;        /* warm cream page background */
-  --color-text: #3d2b1f;      /* dark warm brown, easier on the eyes than pure black */
+  --color-text: #F9F6EE;      /* dark warm brown, easier on the eyes than pure black */
   --color-primary: #d97742;   /* ginger-cat orange — Home button */
   --color-secondary: #3a86ff; /* blue — Join button */
   --color-success: #588157;   /* green — Price button */
