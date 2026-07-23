@@ -34,21 +34,17 @@ p {
   margin-top: 4px;
 }
 
-/* The paragraph of body text */
 .body {
-  font-size: 1.1rem;         /* was a huge 30px — 1.1rem (~17.6px) is easier to read in paragraph form */
-  line-height: 1.6;          /* generous line-height = easier reading, especially for longer text */
+  font-size: 1.1rem;     
+  line-height: 1.6;        
   text-align: center;
 }
 
 #countDisplay,
 #prizeCountDisplay {
-  font-family: 'Yuyu Short', cursive;
-  font-size: 1.6rem;
+  font-family: 'Nunito';
+  font-size: 2rem;
   color: var(--color-primary);
   margin-bottom: 8px;
 }
 
-/* note: removed a stray extra "}" that was at the very end of the old file —
-   an unmatched closing brace can confuse the browser about where
-   styles start and stop. */
