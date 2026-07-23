@@ -1,89 +1,137 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Lucas Vasquez</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+// ============================================
+// Click counters (via your own Cloudflare Worker) + email notification (via EmailJS)
+// Both the "pets" counter and "prizes" counter go through ONE Worker backend.
+// ============================================
 
-  <!-- Google Fonts setup (preconnect makes the font load a little faster).
-       NOTE: I added "Nunito" here alongside your original "Yuyu Short".
-       Yuyu Short is a fun display font but hard to read in long sentences,
-       so now: Yuyu Short = big fun headings, Nunito = everything else. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Yuyu+Short&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
+const EMAILJS_SERVICE_ID = "service_2rcy7it";
+const EMAILJS_TEMPLATE_ID = "template_0v6kx08";
+const EMAILJS_PRIZE_TEMPLATE_ID = "template_vte0m0t";
 
-  <!-- Our own stylesheets. Order matters a little: later files can override earlier ones. -->
-  <link rel="stylesheet" href="styles/text.css">
-  <link rel="stylesheet" href="styles/buttons.css"> 
-  <link rel="stylesheet" href="styles/layout.css">
+emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
-  <!-- EmailJS SDK: lets a webpage send an email straight from the browser,
-       no backend server needed. -->
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-</head>
+const WORKER_BASE_URL = "https://prize-counter.gersonv5005.workers.dev";
 
-<body>
+const countDisplay = document.getElementById("countDisplay");
+const petButton = document.getElementById("petButton");
+const prizeCountDisplay = document.getElementById("prizeCountDisplay");
+const priceButton = document.getElementById("priceButton");
+const spamMessage = document.getElementById("spamMessage");
 
-  <!--
-    A <div> is just a generic box with no meaning of its own — it exists purely
-    to group things together so we can style/position them as one unit.
-    Here .container wraps the ENTIRE page so we can center everything at once.
-  -->
-  <div class="container">
+async function loadCount(counterName, displayElement, label) {
+  try {
+    const response = await fetch(`${WORKER_BASE_URL}/${counterName}`);
+    const data = await response.json();
+    displayElement.textContent = `${label}: ${data.count}`;
+  } catch (error) {
+    console.log(`Couldn't load ${counterName} count:`, error);
+    displayElement.textContent = `${label}: —`;
+  }
+}
 
-    <!-- HEADER: just the title for now, but keeping it in its own div means
-         we can add a logo or subtitle later without touching anything else. -->
-    <div class="header">
-      <p class="title">🐾 Lucas Vasquez 🐾</p>
-      <p class="subtitle">Official Cat Supplying Webpage</p>
-    </div>
+async function incrementCount(counterName, displayElement, label) {
+  try {
+    const response = await fetch(`${WORKER_BASE_URL}/${counterName}/up`, {
+      method: "POST",
+    });
+    const data = await response.json();
+    displayElement.textContent = `${label}: ${data.count}`;
+    return data.count;
+  } catch (error) {
+    console.log(`Couldn't update ${counterName} count:`, error);
+    return null;
+  }
+}
 
-    <!-- CONTENT: the main body div. This holds the photo and the paragraph. -->
-    <div class="content">
+// ------------------------------------------------------------------
+// SPAM-CLICK DETECTOR
+// Guarda el timestamp de cada click por botón. Si hay más de
+// SPAM_CLICK_LIMIT clicks dentro de SPAM_CLICK_WINDOW_MS milisegundos,
+// muestra el mensaje de "Lucas está chimado".
+// ------------------------------------------------------------------
 
-      <!-- <img> is self-closing (no separate closing tag). "alt" describes
-           the image for screen readers and shows up if the image fails to load. -->
-      <div class="photo-row">
-        <img src="thumbnails/lucas2.JPG" alt="Lucas Vasquez the cat" class="lucas-photo">
-        <img src="thumbnails/lucas.JPG" alt="Lucas Vasquez the cat" class="lucas-photo">
-      </div>
+const SPAM_CLICK_LIMIT = 5;       // más de 5 clicks...
+const SPAM_CLICK_WINDOW_MS = 2000; // ...en menos de 2 segundos
 
-      <p class="body">
-      This website has THREE sacred missions: 🐱 petting Lucas, 🍗 feeding Lucas,
-      and 🌿 blessing him with catnip. :3 <br>
-      Right now petting is LIVE 🎉 — smash that button below, every click gets
-      counted, and I get a full report of how much you've all spoiled him
-      today 📊💌 <br>
-      Feeding 🍗 and catnip time 🌿😽 are coming soon... stay tuned, the hype is
-      real 👀🔥 <br>
-      ⚠️ If no counts are made in one week, Lucas will use your IP location from
-      your last click to HUNT YOU DOWN 🕵️‍♂️📍 and charge you an extra 5 clicks
-      as tribute. <br>
-      We appreciate your support and hope you enjoy the website! 💕🐾
+const clickTimestamps = {
+  pets: [],
+  prizes: [],
+};
 
-      </div>
+let spamMessageTimer = null;
 
-    <!-- NAV: the buttons live together in one div, so we can space them
-         out and align them as a group instead of one at a time. -->
- <div class="counter">
-  <p id="countDisplay">Pets: 0</p>
-  <p id="prizeCountDisplay">Prizes: 0</p>
+function isSpamClicking(key) {
+  const now = Date.now();
 
-  <div class="button-row">
-    <button id="petButton" class="petbutton">Pet Lucas</button>
-    <button id="priceButton" class="PriceButton">Price</button>
-  </div>
-</div>
-    <div class="footer">
-      <a href="#">Back to top</a>
-    </div>
+  // Agrega el click actual y luego se queda solo con los que
+  // ocurrieron dentro de la ventana de tiempo (los viejos se descartan).
+  clickTimestamps[key].push(now);
+  clickTimestamps[key] = clickTimestamps[key].filter(
+    (timestamp) => now - timestamp <= SPAM_CLICK_WINDOW_MS
+  );
 
-  </div>
-  <!-- closes .container -->
+  return clickTimestamps[key].length > SPAM_CLICK_LIMIT;
+}
 
-  <!-- Script goes at the END of body so the buttons/text above already exist
-       on the page by the time this code runs and tries to find them. -->
-  <script src="pet.js"></script>
-</body>
-</html>
+function showSpamMessage() {
+  spamMessage.classList.add("visible");
+
+  // Si ya había un temporizador corriendo (de un spam anterior), lo
+  // cancelamos y arrancamos uno nuevo, para que el mensaje no
+  // desaparezca a la mitad de una nueva racha de clicks.
+  clearTimeout(spamMessageTimer);
+  spamMessageTimer = setTimeout(() => {
+    spamMessage.classList.remove("visible");
+  }, 3000);
+}
+
+loadCount("pets", countDisplay, "Pets");
+loadCount("prizes", prizeCountDisplay, "Prizes");
+
+petButton.addEventListener("click", async function () {
+  if (isSpamClicking("pets")) {
+    showSpamMessage();
+    return; // no cuenta el click ni manda email — protege tu cuota de EmailJS
+  }
+
+  const newCount = await incrementCount("pets", countDisplay, "Pets");
+
+  if (newCount === null) return;
+
+  const templateParams = {
+    message: "Lucas was just petted! Total pets: " + newCount,
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams).then(
+    function (response) {
+      console.log("Email sent!", response.status);
+    },
+    function (error) {
+      console.log("Email failed to send:", error);
+    }
+  );
+});
+
+priceButton.addEventListener("click", async function () {
+  if (isSpamClicking("prizes")) {
+    showSpamMessage();
+    return; // no cuenta el click ni manda email — protege tu cuota de EmailJS
+  }
+
+  const newPrizeCount = await incrementCount("prizes", prizeCountDisplay, "Prizes");
+
+  if (newPrizeCount === null) return;
+
+  const prizeTemplateParams = {
+    message: "A prize was just requested! Total prizes: " + newPrizeCount,
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PRIZE_TEMPLATE_ID, prizeTemplateParams).then(
+    function (response) {
+      console.log("Prize email sent!", response.status);
+    },
+    function (error) {
+      console.log("Prize email failed to send:", error);
+    }
+  );
+});
