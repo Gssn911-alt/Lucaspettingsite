@@ -47,7 +47,7 @@
   background-color: var(--color-success);
   color: white;
   border: none;
-  height: 160px;
+  height: 90px;
   width: 160px;
   border-radius: 999px;
   cursor: pointer;
@@ -70,7 +70,7 @@
   background-color: var(--color-love);
   color: white;
   border: none;
-  height: 160px;
+  height: 90px;
   width: 160px;
   border-radius: var(--radius-lg);
   cursor: pointer;
