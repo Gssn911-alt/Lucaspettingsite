@@ -41,7 +41,8 @@ p {
   text-align: center;
 }
 
-#countDisplay,\n#prizeCountDisplay {
+#countDisplay,
+#prizeCountDisplay {
   font-family: 'Yuyu Short', cursive;
   font-size: 1.6rem;
   color: var(--color-primary);
