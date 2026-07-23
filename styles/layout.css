@@ -16,7 +16,7 @@
   the page — watch how much updates from one line.
 */
 :root {
-  --color-bg: #262424;        /* warm cream page background */
+  --color-bg: #fff8f0;        /* warm cream page background */
   --color-text: #3d2b1f;      /* dark warm brown, easier on the eyes than pure black */
   --color-primary: #d97742;   /* ginger-cat orange — Home button */
   --color-secondary: #3a86ff; /* blue — Join button */
@@ -33,9 +33,6 @@
 */
 
 * {
-  /* box-sizing: border-box means padding/border are counted INSIDE the
-     width/height you set, instead of adding extra size on top of it.
-     This stops boxes from silently growing bigger than you expect. */
   box-sizing: border-box;
 }
 
@@ -45,8 +42,8 @@ body {
 }
 
 .container {
-  max-width: 700px;     /* stops the page from stretching super wide on big screens */
-  margin: 0 auto;       /* the "0 auto" trick centers a block horizontally */
+  max-width: 700px;
+  margin: 0 auto;
   padding: 20px;
   text-align: center;
 }
@@ -55,16 +52,12 @@ body {
   margin-bottom: 10px;
 }
 
-/* NOTE: your original file had "display: flex" and a few other properties
-   declared TWICE in a row inside .nav. The second block silently
-   overwrote the first one, so the first block was dead code doing
-   nothing. I merged them into one clean block below. */
 .nav {
-  display: flex;             /* turns this div into a flex container */
-  justify-content: center;   /* centers items horizontally as a group */
-  align-items: center;       /* lines items up on the same vertical line */
-  gap: 20px;                 /* even spacing between items, no margin math needed */
-  flex-wrap: wrap;           /* lets buttons drop to a new line on small screens instead of squishing */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
   margin-bottom: 30px;
 }
 
@@ -83,7 +76,7 @@ body {
 .lucas-photo {
   width: 200px;
   height: 200px;
-  object-fit: cover;         /* fills the square without stretching the photo out of shape */
+  object-fit: cover;
   border-radius: var(--radius-sm);
   border: 3px solid var(--color-primary);
 }
@@ -96,11 +89,6 @@ body {
 }
 
 .counter {
-  /* NOTE: the old version had a FIXED height/width of 200px on this box.
-     Fixed sizes are risky for anything holding text, because if the
-     text is ever longer than expected (like "Pets: 1000000"), it gets
-     clipped or overflows instead of the box just growing to fit.
-     min-width lets it grow if it needs to, but never shrink below 200px. */
   min-width: 200px;
   background-color: white;
   border-radius: var(--radius-lg);
@@ -113,8 +101,24 @@ body {
   border-radius: var(--radius-sm);
   padding: 15px 20px;
   margin-top: 20px;
-  text-align: left;          /* overrides the centered text just for this box */
-  display: inline-block;     /* lets the box hug its content instead of going full width */
+  text-align: left;
+  display: inline-block;
+}
+
+.spam-message {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  color: var(--color-love);
+  font-weight: bold;
+  margin-top: 0;
+  transition: opacity 0.3s ease, max-height 0.3s ease, margin-top 0.3s ease;
+}
+
+.spam-message.visible {
+  opacity: 1;
+  max-height: 40px;
+  margin-top: 10px;
 }
 
 .footer {
