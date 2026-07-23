@@ -1,54 +1,84 @@
-/* Applies to every <p> tag on the page.
-   NOTE: font names with a SPACE in them (like Yuyu Short) need quotes
-   around them. Without quotes, the browser can get confused about where
-   the font name ends — it happened to still work here, but quoting is
-   the safe habit. "sans-serif" is a fallback in case the Google Font
-   fails to load. */
-p {
-  font-family: 'Nunito', sans-serif;
-  color: var(--color-text);
+// ============================================
+// Click counters (via your own Cloudflare Worker) + email notification (via EmailJS)
+// Both the "pets" counter and "prizes" counter go through ONE Worker backend.
+// ============================================
+
+const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
+const EMAILJS_SERVICE_ID = "service_2rcy7it";
+const EMAILJS_TEMPLATE_ID = "template_0v6kx08";
+const EMAILJS_PRIZE_TEMPLATE_ID = "template_vte0m0t";
+
+emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+const WORKER_BASE_URL = "https://prize-counter.gersonv5005.workers.dev";
+
+const countDisplay = document.getElementById("countDisplay");
+const petButton = document.getElementById("petButton");
+const prizeCountDisplay = document.getElementById("prizeCountDisplay");
+const priceButton = document.getElementById("priceButton");
+
+async function loadCount(counterName, displayElement, label) {
+  try {
+    const response = await fetch(`${WORKER_BASE_URL}/${counterName}`);
+    const data = await response.json();
+    displayElement.textContent = `${label}: ${data.count}`;
+  } catch (error) {
+    console.log(`Couldn't load ${counterName} count:`, error);
+    displayElement.textContent = `${label}: —`;
+  }
 }
 
-/* The main heading/name text uses the fun display font, but just for
-   this one element — that's why it's its own class, not on the base "p". */
-.title {
-  font-family: 'Yuyu Short', cursive;
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: var(--color-primary);
-  /* NOTE: your old version had line-height (24px) SMALLER than the
-     font-size (40px). Line-height is the space a line of text takes up
-     top-to-bottom — if it's smaller than the text itself, lines start
-     overlapping each other. Rule of thumb: keep line-height at least
-     equal to font-size, usually a bit bigger. Using a unitless number
-     like 1.2 means "1.2x the font-size", so it scales automatically
-     even if you change font-size later. */
-  line-height: 1.2;
-  margin: 0;
+async function incrementCount(counterName, displayElement, label) {
+  try {
+    const response = await fetch(`${WORKER_BASE_URL}/${counterName}/up`, {
+      method: "POST",
+    });
+    const data = await response.json();
+    displayElement.textContent = `${label}: ${data.count}`;
+    return data.count;
+  } catch (error) {
+    console.log(`Couldn't update ${counterName} count:`, error);
+    return null;
+  }
 }
 
-.subtitle {
-  font-size: 1rem;
-  color: var(--color-text);
-  opacity: 0.7;
-  margin-top: 4px;
-}
+loadCount("pets", countDisplay, "Pets");
+loadCount("prizes", prizeCountDisplay, "Prizes");
 
-/* The paragraph of body text */
-.body {
-  font-size: 1.1rem;         /* was a huge 30px — 1.1rem (~17.6px) is easier to read in paragraph form */
-  line-height: 1.6;          /* generous line-height = easier reading, especially for longer text */
-  text-align: center;
-}
+petButton.addEventListener("click", async function () {
+  const newCount = await incrementCount("pets", countDisplay, "Pets");
 
-#countDisplay,
-#prizeCountDisplay {
-  font-family: 'Yuyu Short', cursive;
-  font-size: 1.6rem;
-  color: var(--color-primary);
-  margin-bottom: 8px;
-}
+  if (newCount === null) return;
 
-/* note: removed a stray extra "}" that was at the very end of the old file —
-   an unmatched closing brace can confuse the browser about where
-   styles start and stop. */
+  const templateParams = {
+    message: "Lucas was just petted! Total pets: " + newCount,
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams).then(
+    function (response) {
+      console.log("Email sent!", response.status);
+    },
+    function (error) {
+      console.log("Email failed to send:", error);
+    }
+  );
+});
+
+priceButton.addEventListener("click", async function () {
+  const newPrizeCount = await incrementCount("prizes", prizeCountDisplay, "Prizes");
+
+  if (newPrizeCount === null) return;
+
+  const prizeTemplateParams = {
+    message: "A prize was just requested! Total prizes: " + newPrizeCount,
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PRIZE_TEMPLATE_ID, prizeTemplateParams).then(
+    function (response) {
+      console.log("Prize email sent!", response.status);
+    },
+    function (error) {
+      console.log("Prize email failed to send:", error);
+    }
+  );
+});
