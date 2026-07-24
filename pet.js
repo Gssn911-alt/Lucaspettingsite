@@ -120,8 +120,51 @@ function formatRemainingTime(ms) {
   return `${minutes}m ${seconds}s`;
 }
 
+// ------------------------------------------------------------------
+// Mensaje FIJO del cooldown de prize (no se oculta solo a los 3 seg.
+// como el de pets — se queda visible y se actualiza cada segundo,
+// hasta que el cooldown de verdad termina).
+// ------------------------------------------------------------------
+
+let prizeCooldownInterval = null;
+
+function startPrizeCooldownDisplay(justClaimed) {
+  // Si ya había un countdown corriendo, lo reiniciamos en vez de
+  // apilar dos intervals al mismo tiempo.
+  clearInterval(prizeCooldownInterval);
+
+  function tick(isFirstTick) {
+    const remaining = getPrizeCooldownRemainingMs();
+
+    if (remaining <= 0) {
+      // Cooldown terminado: ocultamos el mensaje y dejamos de actualizar.
+      clearInterval(prizeCooldownInterval);
+      spamMessage.classList.remove("visible");
+      return;
+    }
+
+    // Cancelamos cualquier auto-ocultado genérico (el de pets), para
+    // que este mensaje no desaparezca solo mientras el cooldown sigue activo.
+    clearTimeout(messageTimer);
+
+    const prefix = isFirstTick && justClaimed ? "🎉 Prize sent! " : "";
+    spamMessage.textContent = `${prefix}Next prize in ${formatRemainingTime(remaining)} ⏳`;
+    spamMessage.classList.add("visible");
+  }
+
+  tick(true);
+  prizeCooldownInterval = setInterval(() => tick(false), 1000);
+}
+
 loadCount("pets", countDisplay, "Pets");
 loadCount("prizes", prizeCountDisplay, "Prizes");
+
+// Si la persona recarga la página mientras el cooldown de prize sigue
+// corriendo, mostramos el countdown fijo de una vez (justClaimed = false,
+// porque no acaba de reclamar el premio ahora, solo seguimos informando).
+if (getPrizeCooldownRemainingMs() > 0) {
+  startPrizeCooldownDisplay(false);
+}
 
 petButton.addEventListener("click", async function () {
   if (isPetBurstSpam()) {
@@ -151,7 +194,7 @@ priceButton.addEventListener("click", async function () {
   const remaining = getPrizeCooldownRemainingMs();
 
   if (remaining > 0) {
-    flashMessage(`Espera ${formatRemainingTime(remaining)} para otro premio ⏳`, 3000);
+    startPrizeCooldownDisplay(false);
     return; // no cuenta el click ni manda email
   }
 
@@ -161,6 +204,7 @@ priceButton.addEventListener("click", async function () {
 
   // Solo marcamos el cooldown si el conteo se guardó bien en el Worker.
   markPrizeClaimedNow();
+  startPrizeCooldownDisplay(true);
 
   const prizeTemplateParams = {
     message: "A prize was just requested! Total prizes: " + newPrizeCount,
