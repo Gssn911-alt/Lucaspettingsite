@@ -81,8 +81,73 @@ body {
   border: 3px solid var(--color-primary);
 }
 
-.button-row {
+/*
+  .counter is now a flex ROW holding two .counter-column boxes side by
+  side (Pets column | Prizes column), instead of one stack with a shared
+  .button-row inside it.
+*/
+.counter {
+  min-width: 200px;
+  background-color: white;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   display: flex;
+  justify-content: center;
+  align-items: flex-start;   /* keeps both columns aligned to the same top line */
+  gap: 30px;
+  flex-wrap: wrap;           /* stacks columns on narrow screens instead of squishing */
+}
+
+/*
+  Each column stacks its own count → button → message top to bottom.
+*/
+.counter-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.facts {
+  background-color: rgb(245, 245, 245);
+  border-radius: var(--radius-sm);
+  padding: 15px 20px;
+  margin-top: 20px;
+  text-align: left;
+  display: inline-block;
+}
+
+.spam-message {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  color: var(--color-love);
+  font-weight: bold;
+  margin-top: 0;
+  transition: opacity 0.3s ease, max-height 0.3s ease, margin-top 0.3s ease;
+}
+
+.spam-message.visible {
+  opacity: 1;
+  max-height: 40px;
+  margin-top: 10px;
+}
+
+.footer {
+  margin-top: 30px;
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--color-secondary);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}  display: flex;
   justify-content: center;
   gap: 12px;
   margin-top: 10px;
