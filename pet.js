@@ -16,7 +16,13 @@ const countDisplay = document.getElementById("countDisplay");
 const petButton = document.getElementById("petButton");
 const prizeCountDisplay = document.getElementById("prizeCountDisplay");
 const priceButton = document.getElementById("priceButton");
-const spamMessage = document.getElementById("spamMessage");
+
+// Two separate message elements now, instead of one shared #spamMessage.
+// This is the fix for the "5 second message" issue — before, the prize
+// cooldown's every-second update was overwriting the pet spam warning
+// because they were the same paragraph. Now they physically can't collide.
+const petMessage = document.getElementById("petMessage");
+const prizeMessage = document.getElementById("prizeMessage");
 
 async function loadCount(counterName, displayElement, label) {
   try {
@@ -44,36 +50,32 @@ async function incrementCount(counterName, displayElement, label) {
 }
 
 // ------------------------------------------------------------------
-// MENSAJE FLOTANTE (genérico)
-// Antes el texto de #spamMessage estaba fijo en el HTML. Ahora lo
-// escribimos desde JS cada vez, porque necesitamos DOS mensajes
-// distintos: uno para el spam-click y otro para el cooldown de prize.
+// PET MESSAGE — shows the "annoyed" warning for 5 seconds, then fades.
+// This ONLY touches #petMessage now, so nothing else can overwrite it.
 // ------------------------------------------------------------------
 
-let messageTimer = null;
+let petMessageTimer = null;
 
-function flashMessage(text, durationMs = 3000) {
-  spamMessage.textContent = text;
-  spamMessage.classList.add("visible");
+function flashPetMessage(text, durationMs = 5000) {
+  petMessage.textContent = text;
+  petMessage.classList.add("visible");
 
-  // Si ya había un mensaje mostrándose, reiniciamos el reloj para que
-  // no desaparezca a la mitad mientras uno nuevo lo reemplaza.
-  clearTimeout(messageTimer);
-  messageTimer = setTimeout(() => {
-    spamMessage.classList.remove("visible");
+  clearTimeout(petMessageTimer);
+  petMessageTimer = setTimeout(() => {
+    petMessage.classList.remove("visible");
   }, durationMs);
 }
 
 // ------------------------------------------------------------------
-// PETS — LIMITADOR DE RÁFAGA ("rate limiter")
-// Guarda el timestamp de cada click. Si hay más de PET_BURST_LIMIT
-// clicks dentro de PET_BURST_WINDOW_MS milisegundos, lo consideramos
-// spam y lo bloqueamos. No limita el total de clicks en el tiempo,
-// solo qué tan rápido/seguido pueden venir.
+// PETS — BURST/SPAM LIMITER ("rate limiter")
+// Tracks the timestamp of each click. If more than PET_BURST_LIMIT
+// clicks land within PET_BURST_WINDOW_MS milliseconds, we treat it as
+// spam and block it — this doesn't limit total clicks over time, only
+// how fast they can come in a row.
 // ------------------------------------------------------------------
 
-const PET_BURST_LIMIT = 3;        // máximo 3 clicks...
-const PET_BURST_WINDOW_MS = 1200; // ...en menos de 1200ms
+const PET_BURST_LIMIT = 3;        // max 3 clicks...
+const PET_BURST_WINDOW_MS = 1200; // ...within 1200ms
 
 let petClickTimestamps = [];
 
@@ -81,8 +83,8 @@ function isPetBurstSpam() {
   const now = Date.now();
 
   petClickTimestamps.push(now);
-  // Nos quedamos solo con los timestamps recientes (dentro de la ventana).
-  // Los viejos "se caen" solos con el paso del tiempo.
+  // Keep only recent timestamps (inside the window). Old ones "fall off"
+  // naturally as time passes.
   petClickTimestamps = petClickTimestamps.filter(
     (timestamp) => now - timestamp <= PET_BURST_WINDOW_MS
   );
@@ -91,14 +93,14 @@ function isPetBurstSpam() {
 }
 
 // ------------------------------------------------------------------
-// PRIZE — COOLDOWN DE 15 MINUTOS
-// A diferencia del pet, aquí no importa la velocidad: debe pasar
-// tiempo REAL desde el último premio válido. Guardamos el momento del
-// último premio en localStorage (persiste aunque recargues la página
-// o cierres el navegador) y lo comparamos contra "ahora" en cada click.
+// PRIZE — 15 MINUTE COOLDOWN
+// Unlike pets, speed doesn't matter here — real time has to pass since
+// the last valid prize. We save the last claim moment in localStorage
+// (survives page reloads and closing the browser) and compare it to
+// "now" on every click.
 // ------------------------------------------------------------------
 
-const PRIZE_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutos, en milisegundos
+const PRIZE_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes, in milliseconds
 const PRIZE_COOLDOWN_STORAGE_KEY = "lastPrizeClaimAt";
 
 function getPrizeCooldownRemainingMs() {
@@ -121,35 +123,31 @@ function formatRemainingTime(ms) {
 }
 
 // ------------------------------------------------------------------
-// Mensaje FIJO del cooldown de prize (no se oculta solo a los 3 seg.
-// como el de pets — se queda visible y se actualiza cada segundo,
-// hasta que el cooldown de verdad termina).
+// PRIZE cooldown display — updates every second, only ever touches
+// #prizeMessage. It no longer competes with the pet message timer at
+// all, since they're two separate elements now.
 // ------------------------------------------------------------------
 
 let prizeCooldownInterval = null;
 
 function startPrizeCooldownDisplay(justClaimed) {
-  // Si ya había un countdown corriendo, lo reiniciamos en vez de
-  // apilar dos intervals al mismo tiempo.
+  // If a countdown was already running, restart it instead of stacking
+  // two intervals at once.
   clearInterval(prizeCooldownInterval);
 
   function tick(isFirstTick) {
     const remaining = getPrizeCooldownRemainingMs();
 
     if (remaining <= 0) {
-      // Cooldown terminado: ocultamos el mensaje y dejamos de actualizar.
+      // Cooldown is over: hide the message and stop updating.
       clearInterval(prizeCooldownInterval);
-      spamMessage.classList.remove("visible");
+      prizeMessage.classList.remove("visible");
       return;
     }
 
-    // Cancelamos cualquier auto-ocultado genérico (el de pets), para
-    // que este mensaje no desaparezca solo mientras el cooldown sigue activo.
-    clearTimeout(messageTimer);
-
     const prefix = isFirstTick && justClaimed ? "🎉 Prize sent! " : "";
-    spamMessage.textContent = `${prefix}Next prize in ${formatRemainingTime(remaining)} ⏳`;
-    spamMessage.classList.add("visible");
+    prizeMessage.textContent = `${prefix}Next prize in ${formatRemainingTime(remaining)} ⏳`;
+    prizeMessage.classList.add("visible");
   }
 
   tick(true);
@@ -159,17 +157,17 @@ function startPrizeCooldownDisplay(justClaimed) {
 loadCount("pets", countDisplay, "Pets");
 loadCount("prizes", prizeCountDisplay, "Prizes");
 
-// Si la persona recarga la página mientras el cooldown de prize sigue
-// corriendo, mostramos el countdown fijo de una vez (justClaimed = false,
-// porque no acaba de reclamar el premio ahora, solo seguimos informando).
+// If someone reloads the page while a prize cooldown is still running,
+// show the fixed countdown right away (justClaimed = false, since they
+// didn't just claim it now — we're just continuing to inform them).
 if (getPrizeCooldownRemainingMs() > 0) {
   startPrizeCooldownDisplay(false);
 }
 
 petButton.addEventListener("click", async function () {
   if (isPetBurstSpam()) {
-    flashMessage("Ok Lucas is annoyed now 🙄 give him a break!");
-    return; // no cuenta el click ni manda email
+    flashPetMessage("Ok Lucas is annoyed now 🙄 give him a break!");
+    return; // blocks both the counter increment AND the email
   }
 
   const newCount = await incrementCount("pets", countDisplay, "Pets");
@@ -202,7 +200,7 @@ priceButton.addEventListener("click", async function () {
 
   if (newPrizeCount === null) return;
 
-  // Solo marcamos el cooldown si el conteo se guardó bien en el Worker.
+  // Only mark the cooldown if the count actually saved successfully in the Worker.
   markPrizeClaimedNow();
   startPrizeCooldownDisplay(true);
 
