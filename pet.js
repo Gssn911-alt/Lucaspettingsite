@@ -51,7 +51,7 @@ async function incrementCount(counterName, displayElement, label) {
 // ------------------------------------------------------------------
 
 const SPAM_CLICK_LIMIT = 5;       // más de 5 clicks...
-const SPAM_CLICK_WINDOW_MS = 2000; // ...en menos de 2 segundos
+const SPAM_CLICK_WINDOW_MS = 1500; // ...en menos de 2 segundos
 
 const clickTimestamps = {
   pets: [],
