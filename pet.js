@@ -44,54 +44,89 @@ async function incrementCount(counterName, displayElement, label) {
 }
 
 // ------------------------------------------------------------------
-// SPAM-CLICK DETECTOR
-// Guarda el timestamp de cada click por botón. Si hay más de
-// SPAM_CLICK_LIMIT clicks dentro de SPAM_CLICK_WINDOW_MS milisegundos,
-// muestra el mensaje de "Lucas está chimado".
+// MENSAJE FLOTANTE (genérico)
+// Antes el texto de #spamMessage estaba fijo en el HTML. Ahora lo
+// escribimos desde JS cada vez, porque necesitamos DOS mensajes
+// distintos: uno para el spam-click y otro para el cooldown de prize.
 // ------------------------------------------------------------------
 
-const SPAM_CLICK_LIMIT = 3;       // más de 5 clicks...
-const SPAM_CLICK_WINDOW_MS = 1200; // ...en menos de 2 segundos
+let messageTimer = null;
 
-const clickTimestamps = {
-  pets: [],
-  prizes: [],
-};
-
-let spamMessageTimer = null;
-
-function isSpamClicking(key) {
-  const now = Date.now();
-
-  // Agrega el click actual y luego se queda solo con los que
-  // ocurrieron dentro de la ventana de tiempo (los viejos se descartan).
-  clickTimestamps[key].push(now);
-  clickTimestamps[key] = clickTimestamps[key].filter(
-    (timestamp) => now - timestamp <= SPAM_CLICK_WINDOW_MS
-  );
-
-  return clickTimestamps[key].length > SPAM_CLICK_LIMIT;
-}
-
-function showSpamMessage() {
+function flashMessage(text, durationMs = 3000) {
+  spamMessage.textContent = text;
   spamMessage.classList.add("visible");
 
-  // Si ya había un temporizador corriendo (de un spam anterior), lo
-  // cancelamos y arrancamos uno nuevo, para que el mensaje no
-  // desaparezca a la mitad de una nueva racha de clicks.
-  clearTimeout(spamMessageTimer);
-  spamMessageTimer = setTimeout(() => {
+  // Si ya había un mensaje mostrándose, reiniciamos el reloj para que
+  // no desaparezca a la mitad mientras uno nuevo lo reemplaza.
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => {
     spamMessage.classList.remove("visible");
-  }, 3000);
+  }, durationMs);
+}
+
+// ------------------------------------------------------------------
+// PETS — LIMITADOR DE RÁFAGA ("rate limiter")
+// Guarda el timestamp de cada click. Si hay más de PET_BURST_LIMIT
+// clicks dentro de PET_BURST_WINDOW_MS milisegundos, lo consideramos
+// spam y lo bloqueamos. No limita el total de clicks en el tiempo,
+// solo qué tan rápido/seguido pueden venir.
+// ------------------------------------------------------------------
+
+const PET_BURST_LIMIT = 3;        // máximo 3 clicks...
+const PET_BURST_WINDOW_MS = 1200; // ...en menos de 1200ms
+
+let petClickTimestamps = [];
+
+function isPetBurstSpam() {
+  const now = Date.now();
+
+  petClickTimestamps.push(now);
+  // Nos quedamos solo con los timestamps recientes (dentro de la ventana).
+  // Los viejos "se caen" solos con el paso del tiempo.
+  petClickTimestamps = petClickTimestamps.filter(
+    (timestamp) => now - timestamp <= PET_BURST_WINDOW_MS
+  );
+
+  return petClickTimestamps.length > PET_BURST_LIMIT;
+}
+
+// ------------------------------------------------------------------
+// PRIZE — COOLDOWN DE 15 MINUTOS
+// A diferencia del pet, aquí no importa la velocidad: debe pasar
+// tiempo REAL desde el último premio válido. Guardamos el momento del
+// último premio en localStorage (persiste aunque recargues la página
+// o cierres el navegador) y lo comparamos contra "ahora" en cada click.
+// ------------------------------------------------------------------
+
+const PRIZE_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutos, en milisegundos
+const PRIZE_COOLDOWN_STORAGE_KEY = "lastPrizeClaimAt";
+
+function getPrizeCooldownRemainingMs() {
+  const lastClaimRaw = localStorage.getItem(PRIZE_COOLDOWN_STORAGE_KEY);
+  const lastClaimAt = lastClaimRaw ? parseInt(lastClaimRaw, 10) : 0;
+  const elapsed = Date.now() - lastClaimAt;
+  const remaining = PRIZE_COOLDOWN_MS - elapsed;
+  return remaining > 0 ? remaining : 0;
+}
+
+function markPrizeClaimedNow() {
+  localStorage.setItem(PRIZE_COOLDOWN_STORAGE_KEY, Date.now().toString());
+}
+
+function formatRemainingTime(ms) {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${seconds}s`;
 }
 
 loadCount("pets", countDisplay, "Pets");
 loadCount("prizes", prizeCountDisplay, "Prizes");
 
 petButton.addEventListener("click", async function () {
-  if (isSpamClicking("pets")) {
-    showSpamMessage();
-    return; // no cuenta el click ni manda email — protege tu cuota de EmailJS
+  if (isPetBurstSpam()) {
+    flashMessage("Ok Lucas is annoyed now 🙄 give him a break!");
+    return; // no cuenta el click ni manda email
   }
 
   const newCount = await incrementCount("pets", countDisplay, "Pets");
@@ -113,14 +148,19 @@ petButton.addEventListener("click", async function () {
 });
 
 priceButton.addEventListener("click", async function () {
-  if (isSpamClicking("prizes")) {
-    showSpamMessage();
-    return; // no cuenta el click ni manda email — protege tu cuota de EmailJS
+  const remaining = getPrizeCooldownRemainingMs();
+
+  if (remaining > 0) {
+    flashMessage(`Espera ${formatRemainingTime(remaining)} para otro premio ⏳`, 3000);
+    return; // no cuenta el click ni manda email
   }
 
   const newPrizeCount = await incrementCount("prizes", prizeCountDisplay, "Prizes");
 
   if (newPrizeCount === null) return;
+
+  // Solo marcamos el cooldown si el conteo se guardó bien en el Worker.
+  markPrizeClaimedNow();
 
   const prizeTemplateParams = {
     message: "A prize was just requested! Total prizes: " + newPrizeCount,
