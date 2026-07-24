@@ -50,8 +50,8 @@ async function incrementCount(counterName, displayElement, label) {
 // muestra el mensaje de "Lucas está chimado".
 // ------------------------------------------------------------------
 
-const SPAM_CLICK_LIMIT = 5;       // más de 5 clicks...
-const SPAM_CLICK_WINDOW_MS = 1500; // ...en menos de 2 segundos
+const SPAM_CLICK_LIMIT = 3;       // más de 5 clicks...
+const SPAM_CLICK_WINDOW_MS = 1200; // ...en menos de 2 segundos
 
 const clickTimestamps = {
   pets: [],
