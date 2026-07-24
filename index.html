@@ -66,23 +66,38 @@
 
     </div>
 
-    <!-- NAV: the buttons live together in one div, so we can space them
-         out and align them as a group instead of one at a time. -->
- <div class="counter">
-  <p id="countDisplay">Pets: 0</p>
-  <p id="prizeCountDisplay">Prizes: 0</p>
+    <!-- NAV: pets and prizes now live in their own columns, side by side,
+         so each counter sits directly above its own button and each has
+         its own message line below — that's what keeps the "Lucas is
+         annoyed" warning from being overwritten by the prize countdown. -->
+    <div class="counter">
 
-  <div class="button-row">
-    <button id="petButton" class="petbutton">Pet Lucas</button>
-    <button id="priceButton" class="PriceButton">Price</button>
-  </div>
+      <div class="counter-column">
+        <p id="countDisplay">Pets: 0</p>
+        <button id="petButton" class="petbutton">Pet Lucas</button>
+        <p id="petMessage" class="spam-message"></p>
+      </div>
 
-  <p id="spamMessage" class="spam-message">Lucas está chimado 🙄 ¡ya párale!</p>
-</div>
+      <div class="counter-column">
+        <p id="prizeCountDisplay">Prizes: 0</p>
+        <button id="priceButton" class="PriceButton">Price</button>
+        <p id="prizeMessage" class="spam-message"></p>
+      </div>
+
+    </div>
+
     <div class="footer">
       <a href="#">Back to top</a>
     </div>
 
+  </div>
+  <!-- closes .container -->
+
+  <!-- Script goes at the END of body so the buttons/text above already exist
+       on the page by the time this code runs and tries to find them. -->
+  <script src="pet.js"></script>
+</body>
+</html>
   </div>
   <!-- closes .container -->
 
