@@ -74,8 +74,8 @@ function flashPetMessage(text, durationMs = 5000) {
 // how fast they can come in a row.
 // ------------------------------------------------------------------
 
-const PET_BURST_LIMIT = 3;        // max 3 clicks...
-const PET_BURST_WINDOW_MS = 1200; // ...within 1200ms
+const PET_BURST_LIMIT = 2;        // max 3 clicks...
+const PET_BURST_WINDOW_MS = 1000; // ...within 1200ms
 
 let petClickTimestamps = [];
 
