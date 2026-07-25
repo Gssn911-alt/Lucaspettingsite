@@ -166,7 +166,7 @@ if (getPrizeCooldownRemainingMs() > 0) {
 
 petButton.addEventListener("click", async function () {
   if (isPetBurstSpam()) {
-    flashPetMessage("Ok Lucas is annoyed now 🙄 give him a break!");
+    flashPetMessage("Ok 🙄 give him a break!");
     return; // blocks both the counter increment AND the email
   }
 
