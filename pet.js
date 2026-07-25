@@ -119,7 +119,7 @@ function flashPetMessage(text, durationMs = 5000) {
 // how fast they can come in a row.
 // ------------------------------------------------------------------
 
-const PET_BURST_LIMIT = 2;        // (see note above the code - comment is stale)
+const PET_BURST_LIMIT = 1;        // (see note above the code - comment is stale)
 const PET_BURST_WINDOW_MS = 1000; // (see note above the code - comment is stale)
 
 // Array that grows/shrinks as clicks come in and old ones expire.
