@@ -1,72 +1,37 @@
 <!DOCTYPE html>
-<!-- Tells the browser "this is a modern HTML5 document" - always the first line -->
 <html>
 <head>
-  <!-- Everything in <head> is metadata: things the PAGE needs to know,
-       but that don't show up as visible content themselves. -->
-
   <title>Lucas Vasquez</title>
-  <!-- Shows up in the browser tab and search engine results -->
-
   <meta charset="UTF-8">
-  <!-- Tells the browser how to decode text - UTF-8 covers virtually every
-       character/emoji you'll ever use, so this should basically never change -->
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Without this, mobile browsers render the page at "desktop width" and
-       shrink it to fit, making everything tiny. This forces the page to use
-       the phone's actual screen width instead. -->
 
-  <!-- Google Fonts setup (preconnect makes the font load a little faster).
-       NOTE: I added "Nunito" here alongside your original "Yuyu Short".
-       Yuyu Short is a fun display font but hard to read in long sentences,
-       so now: Yuyu Short = big fun headings, Nunito = everything else. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Yuyu+Short&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
 
-  <!-- Our own stylesheets. Order matters a little: later files can override earlier ones. -->
   <link rel="stylesheet" href="styles/text.css">
   <link rel="stylesheet" href="styles/buttons.css"> 
   <link rel="stylesheet" href="styles/layout.css">
 
-  <!-- EmailJS SDK: lets a webpage send an email straight from the browser,
-       no backend server needed. This loads EmailJS's own code FIRST, so
-       by the time pet.js runs later and calls emailjs.init(...), the
-       "emailjs" object already exists and is ready to use. -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 
 <body>
-  <!-- Everything VISIBLE on the page goes in <body>. -->
 
-  <!--
-    A <div> is just a generic box with no meaning of its own — it exists purely
-    to group things together so we can style/position them as one unit.
-    Here .container wraps the ENTIRE page so we can center everything at once.
-  -->
   <div class="container">
 
-    <!-- HEADER: just the title for now, but keeping it in its own div means
-         we can add a logo or subtitle later without touching anything else. -->
     <div class="header">
       <p class="title">🐾 Lucas Vasquez 🐾</p>
       <p class="subtitle">Official Cat Supplying Webpage</p>
     </div>
 
-    <!-- CONTENT: the main body div. This holds the photo and the paragraph. -->
     <div class="content">
 
-      <!-- <img> is self-closing (no separate closing tag). "alt" describes
-           the image for screen readers and shows up if the image fails to load. -->
       <div class="photo-row">
         <img src="thumbnails/lucas2.JPG" alt="Lucas Vasquez the cat" class="lucas-photo">
         <img src="thumbnails/lucas.JPG" alt="Lucas Vasquez the cat" class="lucas-photo">
       </div>
 
-      <!-- <br> forces a line break INSIDE a single <p>. Using several <br>s
-           like this keeps it as one paragraph of related lines, rather than
-           several separate <p> tags (which would each get their own spacing). -->
       <p class="body">
         This website has THREE sacred missions: 🐱 petting Lucas, 🍗 feeding Lucas,
         and 🌿 blessing him with catnip. :3 <br>
@@ -79,37 +44,30 @@
         your last click to HUNT YOU DOWN 🕵️‍♂️📍 and charge you an extra 5 clicks
         as tribute. <br>
         We appreciate your support and hope you enjoy the website! 💕🐾
-        
       </p>
 
     </div>
 
-    <!-- NAV: pets and prizes now live in their own columns, side by side,
-         so each counter sits directly above its own button and each has
-         its own message line below — that's what keeps the "Lucas is
-         annoyed" warning from being overwritten by the prize countdown.
-
-         Every id="..." below is a HOOK for pet.js. JS uses
-         document.getElementById("thatId") to grab these exact elements
-         and read/change their text or listen for clicks. If an id here
-         gets renamed without renaming it in pet.js too, JS silently
-         can't find the element anymore (this is a common source of bugs). -->
+    <!-- NAV: three columns now — pets, prizes, catnip — each with its
+         own count display, button, and message line right below it. -->
     <div class="counter">
 
       <div class="counter-column">
         <p id="countDisplay">Pets: 0</p>
-        <!-- "Pets: 0" is just a starting placeholder - pet.js overwrites
-             this the moment the page loads, once it fetches the real count -->
         <button id="petButton" class="petbutton">Pet Lucas</button>
         <p id="petMessage" class="spam-message"></p>
-        <!-- Starts EMPTY on purpose. pet.js fills in text here only when
-             it needs to show the "annoyed" warning, then clears it again. -->
       </div>
 
       <div class="counter-column">
         <p id="prizeCountDisplay">Prizes: 0</p>
         <button id="priceButton" class="PriceButton">Price</button>
         <p id="prizeMessage" class="spam-message"></p>
+      </div>
+
+      <div class="counter-column">
+        <p id="catnipCountDisplay">Catnip: 0</p>
+        <button id="catnipButton" class="CatnipButton">Catnip</button>
+        <p id="catnipMessage" class="spam-message"></p>
       </div>
 
     </div>
@@ -119,12 +77,7 @@
     </div>
 
   </div>
-  <!-- closes .container -->
 
-  <!-- Script goes at the END of body so the buttons/text above already exist
-       on the page by the time this code runs and tries to find them.
-       If this were up in <head> instead, document.getElementById(...) calls
-       in pet.js would run before the buttons even exist yet, and return
-       null - then calling .addEventListener on null would crash. -->
   <script src="pet.js"></script>
 </body>
+</html>
