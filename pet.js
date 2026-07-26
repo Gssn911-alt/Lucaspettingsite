@@ -10,7 +10,7 @@
 const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
 const EMAILJS_SERVICE_ID = "service_2rcy7it";
 const EMAILJS_PRIZE_TEMPLATE_ID = "template_vte0m0t";
-const EMAILJS_CATNIP_TEMPLATE_ID = "template_0v6kx08"; 
+const EMAILJS_CATNIP_TEMPLATE_ID = "template_0v6kx08";
 
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
