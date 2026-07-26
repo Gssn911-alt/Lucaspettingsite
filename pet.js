@@ -10,7 +10,7 @@
 const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
 const EMAILJS_SERVICE_ID = "service_2rcy7it";
 const EMAILJS_PRIZE_TEMPLATE_ID = "template_vte0m0t";
-const EMAILJS_CATNIP_TEMPLATE_ID = "template_0v6kx08";
+const EMAILJS_CATNIP_TEMPLATE_ID = "your_real_template_id_here"; // <- confirm this matches what you set
 
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
@@ -68,8 +68,9 @@ function flashPetMessage(text, durationMs = 5000) {
 }
 
 // ------------------------------------------------------------------
-// PETS — BURST/SPAM LIMITER (unchanged — this stays exactly as it was,
-// it's just the email that's been removed from the click handler below)
+// PETS — BURST/SPAM LIMITER
+// Max 1 click allowed within 1000ms — any 2nd click that fast counts
+// as spam and gets blocked.
 // ------------------------------------------------------------------
 
 const PET_BURST_LIMIT = 1;
@@ -87,7 +88,7 @@ function isPetBurstSpam() {
 }
 
 // ------------------------------------------------------------------
-// PRIZE — 15 MINUTE COOLDOWN (unchanged)
+// PRIZE — 15 MINUTE COOLDOWN (localStorage-based, survives reloads)
 // ------------------------------------------------------------------
 
 const PRIZE_COOLDOWN_MS = 15 * 60 * 1000;
@@ -134,9 +135,25 @@ function startPrizeCooldownDisplay(justClaimed) {
 }
 
 // ------------------------------------------------------------------
-// CATNIP — now the second of your two EmailJS templates, taking over
-// the "send an email" role pets used to have.
+// CATNIP — 5 MINUTE COOLDOWN (protects your EmailJS quota)
+// Same pattern as the prize cooldown: real time has to pass since the
+// last catnip claim, tracked in localStorage so it survives reloads.
 // ------------------------------------------------------------------
+
+const CATNIP_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes — adjust freely
+const CATNIP_COOLDOWN_STORAGE_KEY = "lastCatnipClaimAt";
+
+function getCatnipCooldownRemainingMs() {
+  const lastClaimRaw = localStorage.getItem(CATNIP_COOLDOWN_STORAGE_KEY);
+  const lastClaimAt = lastClaimRaw ? parseInt(lastClaimRaw, 10) : 0;
+  const elapsed = Date.now() - lastClaimAt;
+  const remaining = CATNIP_COOLDOWN_MS - elapsed;
+  return remaining > 0 ? remaining : 0;
+}
+
+function markCatnipClaimedNow() {
+  localStorage.setItem(CATNIP_COOLDOWN_STORAGE_KEY, Date.now().toString());
+}
 
 function flashCatnipMessage(text, durationMs = 5000) {
   catnipMessage.textContent = text;
@@ -146,6 +163,10 @@ function flashCatnipMessage(text, durationMs = 5000) {
   }, durationMs);
 }
 
+// ------------------------------------------------------------------
+// Runs once, immediately, when the page loads
+// ------------------------------------------------------------------
+
 loadCount("pets", countDisplay, "Pets");
 loadCount("prizes", prizeCountDisplay, "Prizes");
 loadCount("catnip", catnipCountDisplay, "Catnip");
@@ -154,7 +175,11 @@ if (getPrizeCooldownRemainingMs() > 0) {
   startPrizeCooldownDisplay(false);
 }
 
-// PET BUTTON — counter only now, no email. Burst-spam blocking unchanged.
+// ------------------------------------------------------------------
+// EVENT LISTENERS
+// ------------------------------------------------------------------
+
+// PET BUTTON — counter only, no email. Burst-spam blocking unchanged.
 petButton.addEventListener("click", async function () {
   if (isPetBurstSpam()) {
     flashPetMessage("Ok 🙄 give him a break!");
@@ -162,8 +187,6 @@ petButton.addEventListener("click", async function () {
   }
 
   await incrementCount("pets", countDisplay, "Pets");
-  // No emailjs.send() here anymore — pets are just tallied silently now,
-  // and you'll check the total count at end of day instead.
 });
 
 priceButton.addEventListener("click", async function () {
@@ -194,12 +217,17 @@ priceButton.addEventListener("click", async function () {
   );
 });
 
-// CATNIP BUTTON — now sends an email, using the pattern the pet button
-// used to use.
 catnipButton.addEventListener("click", async function () {
+  const remaining = getCatnipCooldownRemainingMs();
+  if (remaining > 0) {
+    flashCatnipMessage(`⏳ Next catnip in ${formatRemainingTime(remaining)}`);
+    return; // blocks both the counter increment AND the email
+  }
+
   const newCatnipCount = await incrementCount("catnip", catnipCountDisplay, "Catnip");
   if (newCatnipCount === null) return;
 
+  markCatnipClaimedNow();
   flashCatnipMessage("🌿 Catnip logged!");
 
   const catnipTemplateParams = {
@@ -208,10 +236,3 @@ catnipButton.addEventListener("click", async function () {
 
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CATNIP_TEMPLATE_ID, catnipTemplateParams).then(
     function (response) {
-      console.log("Catnip email sent!", response.status);
-    },
-    function (error) {
-      console.log("Catnip email failed to send:", error);
-    }
-  );
-});
