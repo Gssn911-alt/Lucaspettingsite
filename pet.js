@@ -236,3 +236,10 @@ catnipButton.addEventListener("click", async function () {
 
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CATNIP_TEMPLATE_ID, catnipTemplateParams).then(
     function (response) {
+      console.log("Catnip email sent!", response.status);
+    },
+    function (error) {
+      console.log("Catnip email failed to send:", error);
+    }
+  );
+});
