@@ -1,28 +1,17 @@
 /* Applies to every <p> tag on the page.
-   NOTE: font names with a SPACE in them (like Yuyu Short) need quotes
-   around them. Without quotes, the browser can get confused about where
-   the font name ends — it happened to still work here, but quoting is
-   the safe habit. "sans-serif" is a fallback in case the Google Font
-   fails to load. */
+   NOTE: font names with a SPACE in them need quotes around them, so
+   the browser doesn't get confused about where the name ends.
+   "sans-serif" is a fallback in case the Google Font fails to load. */
 p {
   font-family: 'Nunito', sans-serif;
   color: var(--color-text);
 }
 
-/* The main heading/name text uses the fun display font, but just for
-   this one element — that's why it's its own class, not on the base "p". */
 .title {
   font-family: 'Nunito', bolt;
   font-size: 2.5rem;
   font-weight: bold;
   color: var(--color-primary);
-  /* NOTE: your old version had line-height (24px) SMALLER than the
-     font-size (40px). Line-height is the space a line of text takes up
-     top-to-bottom — if it's smaller than the text itself, lines start
-     overlapping each other. Rule of thumb: keep line-height at least
-     equal to font-size, usually a bit bigger. Using a unitless number
-     like 1.2 means "1.2x the font-size", so it scales automatically
-     even if you change font-size later. */
   line-height: 1.2;
   margin: 0;
 }
@@ -35,16 +24,18 @@ p {
 }
 
 .body {
-  font-size: 1.1rem;     
-  line-height: 1.6;        
+  font-size: 1.1rem;
+  line-height: 1.6;
   text-align: center;
 }
 
+/* Same style now shared by all three counters, pets/prizes/catnip,
+   so they all look consistent as a set. */
 #countDisplay,
-#prizeCountDisplay {
+#prizeCountDisplay,
+#catnipCountDisplay {
   font-family: 'Nunito';
   font-size: 2rem;
   color: var(--color-primary);
   margin-bottom: 8px;
 }
-
