@@ -1,12 +1,16 @@
 // ============================================
 // Click counters (via your own Cloudflare Worker) + email notification (via EmailJS)
-// "pets", "prizes", AND now "catnip" all go through ONE Worker backend.
+// "pets", "prizes", AND "catnip" all go through ONE Worker backend.
+//
+// EmailJS free tier only allows 2 templates + 200 sends/month, so pet
+// clicks no longer send an email at all — they're pure counter clicks.
+// Catnip took over the "send an email" role that pets used to have.
 // ============================================
 
 const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
 const EMAILJS_SERVICE_ID = "service_2rcy7it";
-const EMAILJS_TEMPLATE_ID = "template_0v6kx08";
 const EMAILJS_PRIZE_TEMPLATE_ID = "template_vte0m0t";
+const EMAILJS_CATNIP_TEMPLATE_ID = "template_0v6kx08";
 
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
@@ -19,7 +23,6 @@ const priceButton = document.getElementById("priceButton");
 const petMessage = document.getElementById("petMessage");
 const prizeMessage = document.getElementById("prizeMessage");
 
-// NEW — catnip elements. Same pattern as pets/prizes above.
 const catnipCountDisplay = document.getElementById("catnipCountDisplay");
 const catnipButton = document.getElementById("catnipButton");
 const catnipMessage = document.getElementById("catnipMessage");
@@ -65,9 +68,8 @@ function flashPetMessage(text, durationMs = 5000) {
 }
 
 // ------------------------------------------------------------------
-// PETS — BURST/SPAM LIMITER
-// Max 1 click allowed within 1000ms (1 second) — any 2nd click that
-// fast counts as spam and gets blocked.
+// PETS — BURST/SPAM LIMITER (unchanged — this stays exactly as it was,
+// it's just the email that's been removed from the click handler below)
 // ------------------------------------------------------------------
 
 const PET_BURST_LIMIT = 1;
@@ -85,7 +87,7 @@ function isPetBurstSpam() {
 }
 
 // ------------------------------------------------------------------
-// PRIZE — 15 MINUTE COOLDOWN (localStorage-based, survives reloads)
+// PRIZE — 15 MINUTE COOLDOWN (unchanged)
 // ------------------------------------------------------------------
 
 const PRIZE_COOLDOWN_MS = 15 * 60 * 1000;
@@ -132,11 +134,8 @@ function startPrizeCooldownDisplay(justClaimed) {
 }
 
 // ------------------------------------------------------------------
-// CATNIP — TEST MODE FOR NOW
-// This just counts clicks, same as prizes did before its cooldown was
-// added. No captcha and no cooldown yet — that verification step gets
-// layered on top of this later, same way prizes' cooldown got added
-// after its counter was already working.
+// CATNIP — now the second of your two EmailJS templates, taking over
+// the "send an email" role pets used to have.
 // ------------------------------------------------------------------
 
 function flashCatnipMessage(text, durationMs = 5000) {
@@ -155,27 +154,16 @@ if (getPrizeCooldownRemainingMs() > 0) {
   startPrizeCooldownDisplay(false);
 }
 
+// PET BUTTON — counter only now, no email. Burst-spam blocking unchanged.
 petButton.addEventListener("click", async function () {
   if (isPetBurstSpam()) {
     flashPetMessage("Ok 🙄 give him a break!");
     return;
   }
 
-  const newCount = await incrementCount("pets", countDisplay, "Pets");
-  if (newCount === null) return;
-
-  const templateParams = {
-    message: "Lucas was just petted! Total pets: " + newCount,
-  };
-
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams).then(
-    function (response) {
-      console.log("Email sent!", response.status);
-    },
-    function (error) {
-      console.log("Email failed to send:", error);
-    }
-  );
+  await incrementCount("pets", countDisplay, "Pets");
+  // No emailjs.send() here anymore — pets are just tallied silently now,
+  // and you'll check the total count at end of day instead.
 });
 
 priceButton.addEventListener("click", async function () {
@@ -206,9 +194,24 @@ priceButton.addEventListener("click", async function () {
   );
 });
 
+// CATNIP BUTTON — now sends an email, using the pattern the pet button
+// used to use.
 catnipButton.addEventListener("click", async function () {
   const newCatnipCount = await incrementCount("catnip", catnipCountDisplay, "Catnip");
   if (newCatnipCount === null) return;
 
-  flashCatnipMessage("🌿 Catnip logged! (captcha coming soon)");
+  flashCatnipMessage("🌿 Catnip logged!");
+
+  const catnipTemplateParams = {
+    message: "Lucas just got catnip! Total catnip given: " + newCatnipCount,
+  };
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CATNIP_TEMPLATE_ID, catnipTemplateParams).then(
+    function (response) {
+      console.log("Catnip email sent!", response.status);
+    },
+    function (error) {
+      console.log("Catnip email failed to send:", error);
+    }
+  );
 });
