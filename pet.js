@@ -179,7 +179,7 @@ function startPrizeCooldownDisplay(justClaimed) {
 // one-time message instead of a live ticking countdown.
 // ------------------------------------------------------------------
 
-const CATNIP_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const CATNIP_COOLDOWN_MS = 30 * 60 * 1000; // 5 minutes
 const CATNIP_COOLDOWN_STORAGE_KEY = "lastCatnipClaimAt";
 
 function getCatnipCooldownRemainingMs() {
