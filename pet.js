@@ -7,15 +7,27 @@
 // Catnip took over the "send an email" role that pets used to have.
 // ============================================
 
+// --- EmailJS setup ---
+// PUBLIC_KEY identifies your EmailJS account (safe to expose in frontend code).
+// SERVICE_ID identifies which connected email inbox to send through.
+// Each TEMPLATE_ID points at a specific pre-built email layout in your dashboard.
 const EMAILJS_PUBLIC_KEY = "QORZHtKFzomPXpHz4";
 const EMAILJS_SERVICE_ID = "service_2rcy7it";
 const EMAILJS_PRIZE_TEMPLATE_ID = "template_vte0m0t";
 const EMAILJS_CATNIP_TEMPLATE_ID = "template_0v6kx08";
 
+// Must run once before any emailjs.send() call works anywhere in this file.
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
+// --- Your backend's address ---
+// This is your Cloudflare Worker's URL. Every fetch() below is built by
+// adding more text onto the end of this base address.
 const WORKER_BASE_URL = "https://prize-counter.gersonv5005.workers.dev";
 
+// --- Grabbing every element this script needs to read or update ---
+// getElementById looks up ONE element by its id="..." attribute in the HTML.
+// If any of these ids don't match your actual HTML exactly, the matching
+// constant becomes null, and using it later would crash the whole script.
 const countDisplay = document.getElementById("countDisplay");
 const petButton = document.getElementById("petButton");
 const prizeCountDisplay = document.getElementById("prizeCountDisplay");
@@ -27,41 +39,56 @@ const catnipCountDisplay = document.getElementById("catnipCountDisplay");
 const catnipButton = document.getElementById("catnipButton");
 const catnipMessage = document.getElementById("catnipMessage");
 
+// ------------------------------------------------------------------
+// SHARED HELPERS — used by all three counters (pets, prizes, catnip)
+// so the fetch() logic only needs to be written once, not copy-pasted
+// three times.
+// ------------------------------------------------------------------
+
+// READS the current value of a counter, does NOT change it.
+// Used once when the page first loads, to show real numbers instead
+// of the "0" placeholders sitting in the HTML.
 async function loadCount(counterName, displayElement, label) {
   try {
     const response = await fetch(`${WORKER_BASE_URL}/${counterName}`);
-    const data = await response.json();
+    const data = await response.json(); // turns the raw reply into a JS object, e.g. { count: 7 }
     displayElement.textContent = `${label}: ${data.count}`;
   } catch (error) {
+    // Runs if the Worker is unreachable, offline, or errors out
     console.log(`Couldn't load ${counterName} count:`, error);
     displayElement.textContent = `${label}: —`;
   }
 }
 
+// INCREMENTS a counter by 1 and returns the new number, so the caller
+// (a button's click handler) can use that number afterward — e.g. to
+// put it inside an email message.
 async function incrementCount(counterName, displayElement, label) {
   try {
     const response = await fetch(`${WORKER_BASE_URL}/${counterName}/up`, {
-      method: "POST",
+      method: "POST", // POST = "change something" (vs GET = "just read")
     });
     const data = await response.json();
     displayElement.textContent = `${label}: ${data.count}`;
     return data.count;
   } catch (error) {
     console.log(`Couldn't update ${counterName} count:`, error);
-    return null;
+    return null; // signals failure back to whoever called this
   }
 }
 
 // ------------------------------------------------------------------
-// PET MESSAGE — shows the "annoyed" warning for 5 seconds.
+// PET MESSAGE — the "annoyed" warning, visible for 5 seconds then fades.
+// Only ever touches #petMessage, so nothing else can interfere with it.
 // ------------------------------------------------------------------
 
-let petMessageTimer = null;
+let petMessageTimer = null; // stored outside the function so it survives between clicks
 
 function flashPetMessage(text, durationMs = 5000) {
   petMessage.textContent = text;
-  petMessage.classList.add("visible");
-  clearTimeout(petMessageTimer);
+  petMessage.classList.add("visible"); // triggers the CSS fade-in (see layout.css .spam-message.visible)
+
+  clearTimeout(petMessageTimer); // cancel any PREVIOUS 5-second timer still running
   petMessageTimer = setTimeout(() => {
     petMessage.classList.remove("visible");
   }, durationMs);
@@ -69,37 +96,44 @@ function flashPetMessage(text, durationMs = 5000) {
 
 // ------------------------------------------------------------------
 // PETS — BURST/SPAM LIMITER
-// Max 1 click allowed within 1000ms — any 2nd click that fast counts
-// as spam and gets blocked.
+// Blocks rapid clicking. Doesn't limit total clicks over time — only
+// how FAST they can come in a row.
 // ------------------------------------------------------------------
 
-const PET_BURST_LIMIT = 1;
-const PET_BURST_WINDOW_MS = 1000;
+const PET_BURST_LIMIT = 1;        // only 1 click allowed...
+const PET_BURST_WINDOW_MS = 1000; // ...within 1 second
 
-let petClickTimestamps = [];
+let petClickTimestamps = []; // grows/shrinks as clicks come in and old ones expire
 
 function isPetBurstSpam() {
-  const now = Date.now();
-  petClickTimestamps.push(now);
+  const now = Date.now(); // current time, as a number (ms since 1970)
+
+  petClickTimestamps.push(now); // record this click
+  // Keep only clicks from within the last second — older ones "fall off"
   petClickTimestamps = petClickTimestamps.filter(
     (timestamp) => now - timestamp <= PET_BURST_WINDOW_MS
   );
+
   return petClickTimestamps.length > PET_BURST_LIMIT;
 }
 
 // ------------------------------------------------------------------
-// PRIZE — 15 MINUTE COOLDOWN (localStorage-based, survives reloads)
+// PRIZE — 15 MINUTE COOLDOWN
+// Unlike pets, SPEED doesn't matter here — real TIME has to pass.
+// The last claim moment is saved in localStorage, which survives page
+// reloads and even closing the browser (unlike a normal variable).
 // ------------------------------------------------------------------
 
-const PRIZE_COOLDOWN_MS = 15 * 60 * 1000;
+const PRIZE_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes, in milliseconds
 const PRIZE_COOLDOWN_STORAGE_KEY = "lastPrizeClaimAt";
 
 function getPrizeCooldownRemainingMs() {
   const lastClaimRaw = localStorage.getItem(PRIZE_COOLDOWN_STORAGE_KEY);
+  // localStorage only stores TEXT — parseInt converts it back to a real number
   const lastClaimAt = lastClaimRaw ? parseInt(lastClaimRaw, 10) : 0;
   const elapsed = Date.now() - lastClaimAt;
   const remaining = PRIZE_COOLDOWN_MS - elapsed;
-  return remaining > 0 ? remaining : 0;
+  return remaining > 0 ? remaining : 0; // never return a negative number
 }
 
 function markPrizeClaimedNow() {
@@ -107,40 +141,45 @@ function markPrizeClaimedNow() {
 }
 
 function formatRemainingTime(ms) {
-  const totalSeconds = Math.ceil(ms / 1000);
+  const totalSeconds = Math.ceil(ms / 1000); // round UP so it never shows "0s" too early
   const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  const seconds = totalSeconds % 60; // % = "leftover after dividing" -> gives 0-59
   return `${minutes}m ${seconds}s`;
 }
 
 let prizeCooldownInterval = null;
 
+// Shows a LIVE, ticking countdown (updates every second) instead of a
+// one-time message. justClaimed decides whether to show "🎉 Prize sent!"
+// as a one-time prefix (only true right after actually claiming one).
 function startPrizeCooldownDisplay(justClaimed) {
-  clearInterval(prizeCooldownInterval);
+  clearInterval(prizeCooldownInterval); // stop any PREVIOUS countdown first
 
   function tick(isFirstTick) {
     const remaining = getPrizeCooldownRemainingMs();
+
     if (remaining <= 0) {
-      clearInterval(prizeCooldownInterval);
+      clearInterval(prizeCooldownInterval); // cooldown's over, stop updating
       prizeMessage.classList.remove("visible");
       return;
     }
+
     const prefix = isFirstTick && justClaimed ? "🎉 Prize sent! " : "";
     prizeMessage.textContent = `${prefix}Next prize in ${formatRemainingTime(remaining)} ⏳`;
     prizeMessage.classList.add("visible");
   }
 
-  tick(true);
-  prizeCooldownInterval = setInterval(() => tick(false), 1000);
+  tick(true); // run once immediately - no 1-second blank delay
+  prizeCooldownInterval = setInterval(() => tick(false), 1000); // then every second
 }
 
 // ------------------------------------------------------------------
-// CATNIP — 5 MINUTE COOLDOWN (protects your EmailJS quota)
-// Same pattern as the prize cooldown: real time has to pass since the
-// last catnip claim, tracked in localStorage so it survives reloads.
+// CATNIP — 5 MINUTE COOLDOWN
+// Same idea as prize's cooldown, just a shorter wait and a simpler,
+// one-time message instead of a live ticking countdown.
 // ------------------------------------------------------------------
 
-const CATNIP_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes — adjust freely
+const CATNIP_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 const CATNIP_COOLDOWN_STORAGE_KEY = "lastCatnipClaimAt";
 
 function getCatnipCooldownRemainingMs() {
@@ -164,41 +203,54 @@ function flashCatnipMessage(text, durationMs = 5000) {
 }
 
 // ------------------------------------------------------------------
-// Runs once, immediately, when the page loads
+// PAGE LOAD — runs once, immediately, top to bottom, the moment this
+// script file finishes loading.
 // ------------------------------------------------------------------
 
+// Fetch and display the REAL numbers from the Worker, replacing the
+// "0" placeholders sitting in the HTML.
 loadCount("pets", countDisplay, "Pets");
 loadCount("prizes", prizeCountDisplay, "Prizes");
 loadCount("catnip", catnipCountDisplay, "Catnip");
 
+// If someone reloads mid-cooldown, restore the PRIZE countdown display
+// immediately instead of leaving them guessing.
 if (getPrizeCooldownRemainingMs() > 0) {
   startPrizeCooldownDisplay(false);
 }
 
+// FIX: this exact same check was missing for catnip before — without
+// it, reloading during a catnip cooldown showed nothing until the next
+// click. Now it matches prize's behavior.
+if (getCatnipCooldownRemainingMs() > 0) {
+  flashCatnipMessage(`⏳ Next catnip in ${formatRemainingTime(getCatnipCooldownRemainingMs())}`);
+}
+
 // ------------------------------------------------------------------
-// EVENT LISTENERS
+// EVENT LISTENERS — code that only runs in response to an actual click
 // ------------------------------------------------------------------
 
-// PET BUTTON — counter only, no email. Burst-spam blocking unchanged.
+// PET — counter only, no email (removed to protect your 200/month EmailJS quota).
 petButton.addEventListener("click", async function () {
   if (isPetBurstSpam()) {
     flashPetMessage("Ok 🙄 give him a break!");
-    return;
+    return; // blocks both the counter increment AND any further code below
   }
 
   await incrementCount("pets", countDisplay, "Pets");
 });
 
+// PRIZE — cooldown-gated, sends an email once successfully claimed.
 priceButton.addEventListener("click", async function () {
   const remaining = getPrizeCooldownRemainingMs();
 
   if (remaining > 0) {
-    startPrizeCooldownDisplay(false);
+    startPrizeCooldownDisplay(false); // just re-show the countdown, don't touch anything else
     return;
   }
 
   const newPrizeCount = await incrementCount("prizes", prizeCountDisplay, "Prizes");
-  if (newPrizeCount === null) return;
+  if (newPrizeCount === null) return; // Worker failed - don't start a cooldown for a prize that wasn't recorded
 
   markPrizeClaimedNow();
   startPrizeCooldownDisplay(true);
@@ -207,6 +259,8 @@ priceButton.addEventListener("click", async function () {
     message: "A prize was just requested! Total prizes: " + newPrizeCount,
   };
 
+  // .then(onSuccess, onFailure) - runs one function or the other depending
+  // on whether the email actually sent. Doesn't pause anything else (no await).
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PRIZE_TEMPLATE_ID, prizeTemplateParams).then(
     function (response) {
       console.log("Prize email sent!", response.status);
@@ -217,6 +271,9 @@ priceButton.addEventListener("click", async function () {
   );
 });
 
+// CATNIP — cooldown-gated, sends an email once successfully claimed.
+// Structurally identical to the prize handler above, just shorter cooldown
+// and a simpler one-time message instead of a live countdown.
 catnipButton.addEventListener("click", async function () {
   const remaining = getCatnipCooldownRemainingMs();
   if (remaining > 0) {
